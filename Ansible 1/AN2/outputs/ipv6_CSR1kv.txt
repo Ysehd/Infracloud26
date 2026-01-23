@@ -1,0 +1,8 @@
+GigabitEthernet1       [up/up]
+    FE80::2
+    2001:DB8:ACAD:1::101
+    2001:DB8:ACAD:2::1
+Loopback4              [up/up]
+    unassigned
+Loopback1111           [up/up]
+    unassigned

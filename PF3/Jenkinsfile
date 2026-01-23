@@ -1,0 +1,22 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                sh 'docker build -t pf3-microservice .'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'docker run --rm -d -p 5050:5050 pf3-microservice'
+                sh 'sleep 5'
+                sh 'curl http://localhost:5050/health'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploy stage kan toegevoegd worden'
+            }
+        }
+    }
+}

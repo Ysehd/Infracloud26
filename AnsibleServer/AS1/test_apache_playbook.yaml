@@ -1,0 +1,5 @@
+---
+- hosts: webservers
+  tasks:
+    - name: simple echo test
+      command: /bin/echo "Ansible playbook works"

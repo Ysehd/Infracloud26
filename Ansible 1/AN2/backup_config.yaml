@@ -1,0 +1,17 @@
+---
+- name: AN2 - Backup router config
+  hosts: CSR1kv
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: Get running config
+      ios_command:
+        commands:
+          - show running-config
+      register: cfg
+
+    - name: Save config to file
+      copy:
+        content: "{{ cfg.stdout[0] }}"
+        dest: "backups/running_{{ inventory_hostname }}.cfg"

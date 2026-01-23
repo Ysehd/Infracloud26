@@ -1,0 +1,48 @@
+---
+- name: AS3 - Nginx server automation experiment
+  hosts: nginxservers
+  become: yes
+
+  vars:
+    nginx_custom_port: 8090
+
+  tasks:
+    - name: Install Nginx webserver
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Configure Nginx IPv4 listen port
+      replace:
+        path: /etc/nginx/sites-available/default
+        regexp: 'listen 80 default_server;'
+        replace: 'listen {{ nginx_custom_port }} default_server;'
+      notify: restart nginx
+
+    - name: Configure Nginx IPv6 listen port
+      replace:
+        path: /etc/nginx/sites-available/default
+        regexp: 'listen \[::\]:80 default_server;'
+        replace: 'listen [::]:{{ nginx_custom_port }} default_server;'
+      notify: restart nginx
+
+    - name: Deploy custom HTML page
+      copy:
+        src: templates/index.html
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Ensure Nginx is enabled and running
+      service:
+        name: nginx
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted

@@ -1,0 +1,26 @@
+---
+- name: Configure IPv6 on CSR1kv
+  hosts: routers
+  gather_facts: false
+  connection: network_cli
+
+  tasks:
+    - name: Configure IPv6 address on GigabitEthernet1
+      ios_config:
+        parents: interface GigabitEthernet1
+        lines:
+          - description IPv6 via Ansible AN2
+          - ipv6 address 2001:DB8:ACAD:2::1/64
+          - ipv6 address FE80::2 link-local
+
+    - name: Show IPv6 interface brief
+      ios_command:
+        commands:
+          - show ipv6 interface brief
+      register: ipv6_output
+
+    - name: Save IPv6 output
+      copy:
+        content: "{{ ipv6_output.stdout[0] }}"
+        dest: outputs/ipv6_CSR1kv.txt
+

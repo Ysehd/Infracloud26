@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>AP4 – REST API Webform</title>
+</head>
+<body>
+    <h2>AP4 Webform werkt</h2>
+    
+    <h1>REST API Webform (AP4)</h1>
+
+    <form method="post">
+        <label>Gebruiker ID:</label>
+        <input type="text" name="user_id">
+        <button type="submit">Zoeken</button>
+    </form>
+
+    <hr>
+
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+
+    {% if user %}
+        <h2>Gebruiker gevonden</h2>
+        <p><b>Naam:</b> {{ user.name }}</p>
+        <p><b>Email:</b> {{ user.email }}</p>
+        <p><b>Stad:</b> {{ user.address.city }}</p>
+    {% endif %}
+</body>
+</html>

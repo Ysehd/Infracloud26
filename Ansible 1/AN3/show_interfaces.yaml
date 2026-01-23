@@ -1,0 +1,16 @@
+---
+- name: SHOW INTERFACES FROM SANDBOX
+  hosts: sandbox
+  gather_facts: false
+  connection: network_cli
+
+  tasks:
+    - name: SHOW IP INTERFACE BRIEF
+      ios_command:
+        commands:
+          - show ip interface brief
+      register: output
+
+    - name: PRINT OUTPUT
+      debug:
+        var: output.stdout[0]
