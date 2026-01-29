@@ -1,31 +1,35 @@
 from netmiko import ConnectHandler
-from netmiko.ssh_exception import NetmikoTimeoutException, NetmikoAuthenticationException
+# Importeert ConnectHandler uit Netmiko
+# Netmiko wordt gebruikt om netwerkapparaten te beheren via SSH
 
+# Dictionary met routergegevens
+# Deze info is nodig om verbinding te maken
 router = {
-    "device_type": "cisco_ios",
-    "host": "192.168.56.101",
-    "username": "cisco",
-    "password": "cisco123!",
+    "device_type": "cisco_ios",   # Type netwerkdevice (Cisco IOS)
+    "host": "192.168.56.103",     # IP-adres van de router
+    "username": "cisco",          # SSH gebruikersnaam
+    "password": "cisco123!",      # SSH wachtwoord
 }
 
-try:
-    print("Verbinden met router via SSH...")
-    connection = ConnectHandler(**router)
+print("🔗 Verbinden met router...")
+# Geeft aan dat de SSH-verbinding start
 
-    print("\n--- show version ---")
-    output_version = connection.send_command("show version")
-    print(output_version)
+# Maakt een SSH-verbinding met de router
+# **router geeft de parameters door
+connection = ConnectHandler(**router)
 
-    print("\n--- show ip interface brief ---")
-    output_ip = connection.send_command("show ip interface brief")
-    print(output_ip)
+print("📡 Uitvoeren: show ip interface brief")
+# Geeft aan welk commando wordt uitgevoerd
 
-    connection.disconnect()
-    print("\nVerbinding gesloten.")
+# Stuurt een CLI-commando naar de router
+# Dit commando toont interface status en IP-adressen
+output = connection.send_command("show ip interface brief")
 
-except NetmikoAuthenticationException:
-    print("Authenticatie mislukt.")
+# Print de output van de router in de terminal
+print(output)
 
-except NetmikoTimeoutException:
-    print("Router niet bereikbaar via SSH.")
+# Sluit de SSH-verbinding
+connection.disconnect()
 
+print("✅ Verbinding gesloten")
+# Bevestigt dat de verbinding correct is afgesloten

@@ -1,0 +1,27 @@
+<html>
+<head>
+  <title>Image Experiment</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <h1>Image Experiment (Upload → Grayscale)</h1>
+
+  <form action="/upload" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" accept="image/*" required />
+    <button type="submit">Upload & Process</button>
+  </form>
+
+  {% if orig and result %}
+  <div class="grid">
+    <div>
+      <h2>Origineel</h2>
+      <img src="/uploads/{{ orig }}" />
+    </div>
+    <div>
+      <h2>Grayscale</h2>
+      <img src="/results/{{ result }}" />
+    </div>
+  </div>
+  {% endif %}
+</body>
+</html>

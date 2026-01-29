@@ -1,82 +1,220 @@
-from flask import Flask, request
+# Import voor One-Time Passwords (nog niet gebruikt hier)
+import pyotp
+
+# SQLite database module
 import sqlite3
+
+# Hashing library voor wachtwoorden
 import hashlib
-import os
 
+# Voor unieke identifiers (nog niet gebruikt hier)
+import uuid
+
+# Flask web framework
+from flask import Flask, request
+
+# Maak Flask applicatie
 app = Flask(__name__)
-DB_NAME = "test.db"
 
-def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
+# Naam van de database
+db_name = 'test.db'
 
-    c.execute("""CREATE TABLE IF NOT EXISTS USER_PLAIN (
-        USERNAME TEXT PRIMARY KEY,
-        PASSWORD TEXT
-    )""")
 
-    c.execute("""CREATE TABLE IF NOT EXISTS USER_HASH (
-        USERNAME TEXT PRIMARY KEY,
-        HASH TEXT
-    )""")
+# Root endpoint
+# Test of de applicatie werkt
+@app.route('/')
+def index():
+    return 'Welcome to the hands-on lab for an evolution of password systems!'
 
-    conn.commit()
-    conn.close()
 
+#########################################
+# VERSION 1: Plain Text Passwords
+# Onveilig. Alleen voor demo.
+#########################################
+
+# Signup endpoint versie 1
+# Slaat wachtwoorden in plain text op
 @app.route('/signup/v1', methods=['POST'])
-def signup_plain():
-    username = request.form['username']
-    password = request.form['password']
+def signup_v1():
 
-    conn = sqlite3.connect(DB_NAME)
+    # Maak verbinding met SQLite database
+    conn = sqlite3.connect(db_name)
     c = conn.cursor()
-    c.execute("INSERT INTO USER_PLAIN VALUES (?,?)", (username, password))
+
+    # Maak tabel aan indien niet bestaat
+    # Password wordt onversleuteld opgeslagen
+    c.execute(
+        '''CREATE TABLE IF NOT EXISTS USER_PLAIN
+           (USERNAME TEXT PRIMARY KEY NOT NULL,
+            PASSWORD TEXT NOT NULL);'''
+    )
     conn.commit()
+
+    try:
+        # Voeg gebruiker toe aan database
+        # SQL injectie risico (bewust onveilig)
+        c.execute(
+            "INSERT INTO USER_PLAIN (USERNAME,PASSWORD) "
+            "VALUES ('{0}', '{1}')".format(
+                request.form['username'],
+                request.form['password']
+            )
+        )
+        conn.commit()
+
+    # Fout als username al bestaat
+    except sqlite3.IntegrityError:
+        return "username has been registered."
+
+    # Print gegevens naar console (onveilig)
+    print('username: ', request.form['username'],
+          ' password: ', request.form['password'])
+
+    return "signup success"
+
+
+# Controleer plain text wachtwoord
+def verify_plain(username, password):
+
+    # Verbind met database
+    conn = sqlite3.connect('test.db')
+    c = conn.cursor()
+
+    # Haal wachtwoord op
+    query = "SELECT PASSWORD FROM USER_PLAIN WHERE USERNAME = '{0}'".format(
+        username)
+    c.execute(query)
+
+    # Haal resultaat op
+    records = c.fetchone()
     conn.close()
 
-    return "Plain signup OK"
+    # Geen gebruiker gevonden
+    if not records:
+        return False
 
-@app.route('/login/v1', methods=['POST'])
-def login_plain():
-    username = request.form['username']
-    password = request.form['password']
+    # Vergelijk plain text wachtwoord
+    return records[0] == password
 
-    conn = sqlite3.connect(DB_NAME)
+
+# Login endpoint versie 1
+@app.route('/login/v1', methods=['GET', 'POST'])
+def login_v1():
+    error = None
+
+    # Alleen POST toegestaan
+    if request.method == 'POST':
+
+        # Controleer login
+        if verify_plain(request.form['username'], request.form['password']):
+            error = 'login success'
+        else:
+            error = 'Invalid username/password'
+
+    else:
+        error = 'Invalid Method'
+
+    return error
+
+
+#########################################
+# VERSION 2: Password Hashing
+# Veiliger dan plain text
+#########################################
+
+# Signup endpoint versie 2
+# Gebruikt hashing
+@app.route('/signup/v2', methods=['GET', 'POST'])
+def signup_v2():
+
+    # Verbind met database
+    conn = sqlite3.connect(db_name)
     c = conn.cursor()
-    c.execute("SELECT * FROM USER_PLAIN WHERE USERNAME=? AND PASSWORD=?", (username, password))
-    result = c.fetchone()
-    conn.close()
 
-    return "Plain login OK" if result else "Plain login FAILED"
-
-@app.route('/signup/v2', methods=['POST'])
-def signup_hash():
-    username = request.form['username']
-    password = request.form['password']
-    hash_value = hashlib.sha256(password.encode()).hexdigest()
-
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("INSERT INTO USER_HASH VALUES (?,?)", (username, hash_value))
+    # Tabel voor gehashte wachtwoorden
+    c.execute(
+        '''CREATE TABLE IF NOT EXISTS USER_HASH
+           (USERNAME TEXT PRIMARY KEY NOT NULL,
+            HASH TEXT NOT NULL);'''
+    )
     conn.commit()
-    conn.close()
 
-    return "Hash signup OK"
+    try:
+        # Hash het wachtwoord met SHA-256
+        hash_value = hashlib.sha256(
+            request.form['password'].encode()).hexdigest()
 
-@app.route('/login/v2', methods=['POST'])
-def login_hash():
-    username = request.form['username']
-    password = request.form['password']
-    hash_value = hashlib.sha256(password.encode()).hexdigest()
+        # Sla username en hash op
+        c.execute(
+            "INSERT INTO USER_HASH (USERNAME, HASH) "
+            "VALUES ('{0}', '{1}')".format(
+                request.form['username'],
+                hash_value
+            )
+        )
+        conn.commit()
 
-    conn = sqlite3.connect(DB_NAME)
+    # Username bestaat al
+    except sqlite3.IntegrityError:
+        return "username has been registered."
+
+    # Print debug info
+    print('username: ', request.form['username'],
+          ' password: ', request.form['password'],
+          ' hash: ', hash_value)
+
+    return "signup success"
+
+
+# Controleer gehashed wachtwoord
+def verify_hash(username, password):
+
+    # Verbind met database
+    conn = sqlite3.connect(db_name)
     c = conn.cursor()
-    c.execute("SELECT * FROM USER_HASH WHERE USERNAME=? AND HASH=?", (username, hash_value))
-    result = c.fetchone()
+
+    # Haal hash op
+    query = "SELECT HASH FROM USER_HASH WHERE USERNAME = '{0}'".format(
+        username)
+    c.execute(query)
+
+    records = c.fetchone()
     conn.close()
 
-    return "Hash login OK" if result else "Hash login FAILED"
+    # Geen gebruiker
+    if not records:
+        return False
 
-if __name__ == "__main__":
-    init_db()
-    app.run(host='0.0.0.0', port=5000)
+    # Hash invoer en vergelijk
+    return records[0] == hashlib.sha256(password.encode()).hexdigest()
+
+
+# Login endpoint versie 2
+@app.route('/login/v2', methods=['GET', 'POST'])
+def login_v2():
+    error = None
+
+    # Alleen POST
+    if request.method == 'POST':
+
+        # Controleer login
+        if verify_hash(request.form['username'], request.form['password']):
+            error = 'login success'
+        else:
+            error = 'Invalid username/password'
+
+    else:
+        error = 'Invalid Method'
+
+    return error
+
+
+#########################################
+# Start Flask applicatie
+#########################################
+
+if __name__ == '__main__':
+
+    # Start server op alle interfaces
+    # HTTPS met self-signed cert
+    app.run(host='0.0.0.0', port=5000, ssl_context='adhoc')

@@ -1,0 +1,4 @@
+body { font-family: Arial, sans-serif; margin: 30px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+img { max-width: 100%; border: 1px solid #ccc; border-radius: 6px; }
+button { margin-left: 10px; }
